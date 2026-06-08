@@ -1,8 +1,11 @@
 # MeowsL
 
-![Логотип MeowsL](photo/logo-icon.png)
-
-![Пример работы](photo/modal.png)
+<p align="center">
+  <img src="photo/logo-icon.png" alt="Логотип MeowsL" width="128">
+</p>
+<p align="center">
+  <img src="photo/modal.png" alt="Пример работы" width="420" style="max-width: 100%; height: auto;">
+</p>
 
 **MeowsL** — фоновый переводчик для Windows. Работает из системного трея: скопировал текст, нажал Ctrl+c+c — получил перевод в компактном popup-окне.
 
