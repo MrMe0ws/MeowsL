@@ -1,0 +1,63 @@
+# --- Cursor (локальная конфигурация AI, не для публикации) ---
+.cursor/
+
+# --- Личные заметки и инструкции ---
+NOTES.md
+PRIVATE.md
+TODO.private.md
+notes/
+
+# --- Секреты и окружение ---
+.env
+.env.*
+*.pem
+credentials.json
+secrets.*
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.manifest
+
+# --- Виртуальные окружения ---
+.venv/
+venv/
+env/
+
+# --- Сборка PyInstaller ---
+dist/
+build/meowsl/
+*.spec.bak
+
+# --- IDE / редактор ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- ОС ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Тесты и временные скрипты ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+tests/_test_*.py
+_diag/
+_*.py
+_verify_*.py
+_crop.py
+
+# --- Логи ---
+*.log

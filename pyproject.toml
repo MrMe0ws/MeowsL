@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "translate-meows"
+version = "0.2.0"
+description = "Глобальный переводчик по хоткею для Windows"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.6.0",
+    "deep-translator>=1.11.4",
+    "keyboard>=0.13.5",
+]
+
+[project.scripts]
+translate-meows = "translate_meows.app:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
