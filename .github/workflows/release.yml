@@ -1,0 +1,66 @@
+name: Release
+
+# Тег вида 0.2.1
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build portable exe
+        shell: pwsh
+        run: .\build\build.ps1
+
+      - name: Prepare release assets
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          Copy-Item dist\MeowsL.exe "dist\MeowsL-$version.exe"
+
+      - name: Extract GitHub release notes
+        shell: pwsh
+        run: |
+          if (-not (Test-Path RELEASE_NOTES.md)) {
+            "Portable Windows build." | Out-File release_body.md -Encoding utf8NoBOM
+            exit 0
+          }
+          $lines = Get-Content RELEASE_NOTES.md -Encoding utf8
+          $capture = $false
+          $body = [System.Collections.Generic.List[string]]::new()
+          foreach ($line in $lines) {
+            if ($line -eq '## Вариант для GitHub Releases') {
+              $capture = $true
+              continue
+            }
+            if ($capture -and $line -eq '---') { break }
+            if ($capture) { $body.Add($line) }
+          }
+          if ($body.Count -eq 0) {
+            "Portable Windows build." | Out-File release_body.md -Encoding utf8NoBOM
+          } else {
+            ($body -join "`n").Trim() | Out-File release_body.md -Encoding utf8NoBOM
+          }
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: MeowsL ${{ github.ref_name }}
+          body_path: release_body.md
+          files: dist/MeowsL-${{ github.ref_name }}.exe
+          draft: false
+          prerelease: false

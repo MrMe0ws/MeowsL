@@ -2,7 +2,7 @@
 
 APP_NAME = "Translate Meows"
 APP_DISPLAY_NAME = "MeowsL"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.2.2"
 
 # Перевод
 DEBOUNCE_MS = 600
@@ -26,6 +26,7 @@ RESIZE_MARGIN = 10
 SETTINGS_ORG = "MeowsLate"
 SETTINGS_APP = "TranslateMeows"
 SETTINGS_KEY_POPUP_GEOMETRY = "popup/geometry"
+SETTINGS_KEY_AUTOSTART = "autostart/enabled"
 SETTINGS_GEOMETRY_SAVE_MS = 300
 FIELD_PADDING = 14
 

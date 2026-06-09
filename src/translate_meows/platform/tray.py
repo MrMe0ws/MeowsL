@@ -6,6 +6,7 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMenu, QSystemTrayIcon
 
 from translate_meows.config import APP_NAME
+from translate_meows.platform import autostart
 from translate_meows.ui.icons import app_icon
 
 
@@ -23,10 +24,18 @@ class TrayManager:
         menu = QMenu()
         show_action = QAction("Перевести из буфера (Ctrl+C+C)", menu)
         show_action.triggered.connect(on_show)
+
+        autostart_action = QAction("Запускать с Windows", menu)
+        autostart_action.setCheckable(True)
+        autostart_action.setChecked(autostart.is_enabled_in_settings())
+        autostart_action.triggered.connect(self._on_autostart_toggled)
+
         quit_action = QAction("Выход", menu)
         quit_action.triggered.connect(on_quit)
 
         menu.addAction(show_action)
+        menu.addSeparator()
+        menu.addAction(autostart_action)
         menu.addSeparator()
         menu.addAction(quit_action)
 
@@ -36,6 +45,9 @@ class TrayManager:
             if reason == QSystemTrayIcon.ActivationReason.Trigger
             else None
         )
+
+    def _on_autostart_toggled(self, enabled: bool) -> None:
+        autostart.set_enabled(enabled)
 
     def show(self) -> None:
         self._tray.show()

@@ -35,5 +35,9 @@ Source: "..\dist\MeowsL.exe"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
+[Registry]
+; Удалить автозапуск при деинсталляции (если пользователь включал его в приложении)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "{#MyAppName}"; Flags: uninsdeletevalue dontcreatekey
+
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Запустить MeowsL"; Flags: nowait postinstall skipifsilent

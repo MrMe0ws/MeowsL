@@ -7,6 +7,7 @@ from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
 from translate_meows.config import APP_NAME
+from translate_meows.platform import autostart
 from translate_meows.platform.hotkey import HotkeyListener
 from translate_meows.platform.tray import TrayManager
 from translate_meows.ui.icons import app_icon
@@ -51,6 +52,7 @@ class TranslatorApp:
             )
             return 1
 
+        autostart.sync()
         self._tray.show()
         self._hotkey.start()
         return self._app.exec()
