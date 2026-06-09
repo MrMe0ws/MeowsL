@@ -47,5 +47,9 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=str(ROOT / "photo" / ("logo-icon.png" if (ROOT / "photo" / "logo-icon.png").is_file() else "logo.png")),
+    icon=str(
+        ROOT / "photo" / "logo-icon.ico"
+        if (ROOT / "photo" / "logo-icon.ico").is_file()
+        else "logo.png"
+    ),
 )
