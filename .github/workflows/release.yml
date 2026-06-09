@@ -5,6 +5,7 @@ on:
   push:
     tags:
       - '*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,7 +24,12 @@ jobs:
 
       - name: Build portable exe
         shell: pwsh
-        run: .\build\build.ps1
+        run: |
+          python --version
+          .\build\build.ps1
+          if (-not (Test-Path dist\MeowsL.exe)) {
+            throw "dist\MeowsL.exe not found after build"
+          }
 
       - name: Prepare release assets
         shell: pwsh
@@ -35,7 +41,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path RELEASE_NOTES.md)) {
-            "Portable Windows build." | Out-File release_body.md -Encoding utf8NoBOM
+            "Portable Windows build." | Set-Content release_body.md -Encoding utf8
             exit 0
           }
           $lines = Get-Content RELEASE_NOTES.md -Encoding utf8
@@ -50,9 +56,9 @@ jobs:
             if ($capture) { $body.Add($line) }
           }
           if ($body.Count -eq 0) {
-            "Portable Windows build." | Out-File release_body.md -Encoding utf8NoBOM
+            "Portable Windows build." | Set-Content release_body.md -Encoding utf8
           } else {
-            ($body -join "`n").Trim() | Out-File release_body.md -Encoding utf8NoBOM
+            ($body -join "`n").Trim() | Set-Content release_body.md -Encoding utf8
           }
 
       - name: Publish GitHub Release
