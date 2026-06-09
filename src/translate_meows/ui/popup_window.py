@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from PyQt6.QtCore import QEvent, QObject, QTimer, Qt
+from PyQt6.QtCore import QEvent, QObject, QTimer, Qt, QRect
 from PyQt6.QtGui import QGuiApplication, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QFrame,
@@ -26,6 +26,7 @@ from translate_meows.platform.window_state import (
     center_popup_on_screen,
     ensure_popup_on_screen,
     load_popup_geometry,
+    place_popup_near_rect,
     save_popup_geometry,
 )
 from translate_meows.services.translation_runner import TranslationRunner
@@ -304,23 +305,35 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
         self._frameless_mouse_release(event)
         super().mouseReleaseEvent(event)
 
-    def show_with_text(self, text: str) -> None:
-        """Показать окно и запустить перевод."""
+    def show_with_text(
+        self,
+        text: str,
+        *,
+        auto_translate: bool = True,
+        anchor_rect: QRect | None = None,
+    ) -> None:
+        """Показать окно и при необходимости запустить перевод."""
         self._reset_session()
-        self._restore_or_default_geometry()
+        if anchor_rect is not None:
+            self.resize(POPUP_WIDTH, POPUP_HEIGHT)
+        else:
+            self._restore_or_default_geometry()
 
         self._input.blockSignals(True)
         self._input.setPlainText(text)
         self._input.blockSignals(False)
 
-        if text.strip():
+        if auto_translate and text.strip():
             self._start_translation()
         else:
             self._output.clear()
             self._update_lang_labels()
 
         self.show()
-        if not self._has_saved_geometry:
+        if anchor_rect is not None:
+            place_popup_near_rect(self, anchor_rect)
+            ensure_popup_on_screen(self)
+        elif not self._has_saved_geometry:
             center_popup_on_screen(self)
             ensure_popup_on_screen(self)
         self.raise_()

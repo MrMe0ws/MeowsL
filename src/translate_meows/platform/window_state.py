@@ -1,10 +1,11 @@
 """Сохранение размера и позиции popup между сессиями."""
 
-from PyQt6.QtCore import QByteArray, QSettings
+from PyQt6.QtCore import QByteArray, QSettings, QRect
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QWidget
 
 from translate_meows.config import (
+    POPUP_ANCHOR_MARGIN,
     POPUP_HEIGHT,
     POPUP_WIDTH,
     SETTINGS_APP,
@@ -46,6 +47,52 @@ def ensure_popup_on_screen(widget: QWidget) -> None:
     y = max(available.top(), min(geo.y(), max_y))
     if x != geo.x() or y != geo.y():
         widget.move(x, y)
+
+
+def place_popup_near_rect(
+    widget: QWidget,
+    anchor: QRect,
+    *,
+    margin: int = POPUP_ANCHOR_MARGIN,
+) -> None:
+    """Размещает popup рядом с выделенной на экране областью."""
+    if anchor.isEmpty():
+        center_popup_on_screen(widget)
+        return
+
+    widget.resize(POPUP_WIDTH, POPUP_HEIGHT)
+
+    screen = QGuiApplication.screenAt(anchor.center()) or QGuiApplication.primaryScreen()
+    if screen is None:
+        return
+
+    available = screen.availableGeometry()
+    popup_w = widget.frameGeometry().width()
+    popup_h = widget.frameGeometry().height()
+
+    below_y = anchor.bottom() + margin + 1
+    above_y = anchor.top() - popup_h - margin
+    right_x = anchor.right() + margin + 1
+    left_x = anchor.left() - popup_w - margin
+
+    candidates = [
+        (anchor.left(), below_y),
+        (anchor.left(), above_y),
+        (right_x, anchor.top()),
+        (left_x, anchor.top()),
+    ]
+
+    for x, y in candidates:
+        fits_x = available.left() <= x <= available.right() - popup_w + 1
+        fits_y = available.top() <= y <= available.bottom() - popup_h + 1
+        if fits_x and fits_y:
+            widget.move(x, y)
+            return
+
+    x = max(available.left(), min(anchor.left(), available.right() - popup_w + 1))
+    y = min(below_y, available.bottom() - popup_h + 1)
+    y = max(available.top(), y)
+    widget.move(x, y)
 
 
 def center_popup_on_screen(widget: QWidget) -> None:
