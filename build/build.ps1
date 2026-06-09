@@ -6,52 +6,49 @@ $Root = Split-Path -Parent $PSScriptRoot
 
 Set-Location $Root
 
-# Сначала `python` (GitHub Actions / venv), иначе `py -3` (локальный Windows).
-# Заглушка Microsoft Store на `python` отсеивается пробным import.
-$script:PythonLauncher = $null
+$script:PythonExe = $null
 
-function Test-PythonLauncher {
-    param([string[]]$Launcher)
-    $prev = $ErrorActionPreference
-    $ErrorActionPreference = "SilentlyContinue"
-    try {
-        $out = & $launcher[0] $(if ($launcher.Length -gt 1) { $launcher[1..($launcher.Length - 1)] }) -c "import sys; print(sys.executable)" 2>&1
-        return ($LASTEXITCODE -eq 0) -and ($out -match '[\\/]python')
-    } finally {
-        $ErrorActionPreference = $prev
-    }
-}
+function Get-PythonExe {
+    if ($script:PythonExe) { return $script:PythonExe }
 
-function Get-PythonLauncher {
-    if ($script:PythonLauncher) { return $script:PythonLauncher }
-    foreach ($launcher in @(@("python"), @("py", "-3"))) {
-        if (Test-PythonLauncher $launcher) {
-            $script:PythonLauncher = $launcher
-            return $launcher
+    $candidates = @("python", "py")
+    foreach ($cmd in $candidates) {
+        $prev = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+        try {
+            if ($cmd -eq "py") {
+                $out = & py -3 -c "import sys; print(sys.executable)" 2>&1
+            } else {
+                $out = & python -c "import sys; print(sys.executable)" 2>&1
+            }
+            if ($LASTEXITCODE -eq 0 -and $out -match '[\\/]python\.exe$') {
+                $script:PythonExe = $out.ToString().Trim()
+                return $script:PythonExe
+            }
+        } finally {
+            $ErrorActionPreference = $prev
         }
     }
+
     throw "Python 3 not found (tried: python, py -3)"
 }
 
 function Invoke-Python {
     param([string[]]$PythonArgs)
-    $launcher = Get-PythonLauncher
+    $exe = Get-PythonExe
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        if ($launcher.Length -gt 1) {
-            & $launcher[0] $launcher[1..($launcher.Length - 1)] @PythonArgs
-        } else {
-            & $launcher[0] @PythonArgs
-        }
+        & $exe @PythonArgs
         if ($LASTEXITCODE -ne 0) {
-            throw "Command failed (exit $LASTEXITCODE): $($launcher -join ' ') $($PythonArgs -join ' ')"
+            throw "Command failed (exit $LASTEXITCODE): $exe $($PythonArgs -join ' ')"
         }
     } finally {
         $ErrorActionPreference = $prev
     }
 }
 
+Write-Host "==> Python: $(Get-PythonExe)" -ForegroundColor Cyan
 Write-Host "==> Installing build dependencies..." -ForegroundColor Cyan
 Invoke-Python @("-m", "pip", "install", "-r", "requirements.txt", "pyinstaller", "--quiet")
 
