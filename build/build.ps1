@@ -34,14 +34,18 @@ function Get-PythonLauncher {
 }
 
 function Invoke-Python {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
+    param([string[]]$PythonArgs)
     $launcher = Get-PythonLauncher
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        & $launcher[0] $(if ($launcher.Length -gt 1) { $launcher[1..($launcher.Length - 1)] }) @Args
+        if ($launcher.Length -gt 1) {
+            & $launcher[0] $launcher[1..($launcher.Length - 1)] @PythonArgs
+        } else {
+            & $launcher[0] @PythonArgs
+        }
         if ($LASTEXITCODE -ne 0) {
-            throw "Command failed (exit $LASTEXITCODE): $($launcher -join ' ') $($Args -join ' ')"
+            throw "Command failed (exit $LASTEXITCODE): $($launcher -join ' ') $($PythonArgs -join ' ')"
         }
     } finally {
         $ErrorActionPreference = $prev
@@ -49,10 +53,10 @@ function Invoke-Python {
 }
 
 Write-Host "==> Installing build dependencies..." -ForegroundColor Cyan
-Invoke-Python -m pip install -r requirements.txt pyinstaller --quiet
+Invoke-Python @("-m", "pip", "install", "-r", "requirements.txt", "pyinstaller", "--quiet")
 
 Write-Host "==> Building exe..." -ForegroundColor Cyan
-Invoke-Python -m PyInstaller build\meowsl.spec --noconfirm --clean
+Invoke-Python @("-m", "PyInstaller", "build\meowsl.spec", "--noconfirm", "--clean")
 
 Write-Host ""
 Write-Host "Done: dist\MeowsL.exe" -ForegroundColor Green
