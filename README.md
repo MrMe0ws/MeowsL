@@ -11,7 +11,7 @@
 
 ## Возможности
 
-- **Ctrl+C+C** — открыть перевод текста из буфера обмена (два нажатия `Ctrl+C` за 500 мс)
+- **Ctrl+C+C** — открыть перевод текста из буфера обмена
 - **Ctrl+Alt+T** — запасной хоткей
 - Автоопределение языка: русский ↔ английский
 - Редактирование исходного текста с debounce-переводом
@@ -26,7 +26,7 @@
 ### Из исходников (нужен Python 3.10+)
 
 ```powershell
-git clone <url-репозитория>
+git clone https://github.com/MrMe0ws/MeowsL
 cd MeowsL
 py -3 -m pip install -r requirements.txt
 py -3 main.py
@@ -38,7 +38,7 @@ py -3 main.py
 
 ### Готовый .exe
 
-Скачай `MeowsL.exe` из [Releases](https://github.com/<user>/MeowsL/releases) и запусти. Python не нужен.
+Скачай `MeowsL.exe` из [Releases](https://github.com/MrMe0ws/MeowsL/releases) и запусти. Python не нужен.
 
 ## Как пользоваться
 
