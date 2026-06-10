@@ -18,7 +18,8 @@ class TranslationRunner(QObject):
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._thread = QThread(parent)
+        self._shutdown_done = False
+        self._thread = QThread(self)
         self._worker = TranslateWorker()
         self._worker.moveToThread(self._thread)
 
@@ -40,7 +41,14 @@ class TranslationRunner(QObject):
         self._worker.translate_requested.emit(text, request_id, source, target)
 
     def shutdown(self, timeout_ms: int = 5000) -> None:
+        if self._shutdown_done:
+            return
+        self._shutdown_done = True
+
         if not self._thread.isRunning():
             return
+
         self._thread.quit()
-        self._thread.wait(timeout_ms)
+        if not self._thread.wait(timeout_ms):
+            self._thread.terminate()
+            self._thread.wait(3000)

@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 from translate_meows.config import APP_NAME
 from translate_meows.platform import autostart
 from translate_meows.platform.hotkey import HotkeyListener
+from translate_meows.platform.power_resume import install_power_resume_handler
 from translate_meows.platform.tray import TrayManager
 from translate_meows.services.ocr_runner import OcrRunner
 from translate_meows.ui.icons import app_icon
@@ -35,9 +36,10 @@ class TranslatorApp:
         self._app.setQuitOnLastWindowClosed(False)
         self._app.setStyle("Fusion")
 
+        self._shutting_down = False
         self._popup = TranslationPopup()
         self._overlay = ScreenCaptureOverlay()
-        self._ocr_runner = OcrRunner()
+        self._ocr_runner = OcrRunner(self._app)
         self._ocr_request_id = 0
         self._capture_anchor: QRect | None = None
 
@@ -56,6 +58,9 @@ class TranslatorApp:
         self._hotkey = HotkeyListener(
             on_trigger=self._bridge.triggered.emit,
             on_screen_capture=self._bridge.screen_capture_triggered.emit,
+        )
+        self._power_resume = install_power_resume_handler(
+            self._app, self._hotkey.restart
         )
         self._tray = TrayManager(
             on_show=self._on_hotkey_triggered,
@@ -78,11 +83,23 @@ class TranslatorApp:
         return self._app.exec()
 
     def _on_about_to_quit(self) -> None:
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+
         self._hotkey.stop()
+        if self._power_resume is not None:
+            self._app.removeNativeEventFilter(self._power_resume)
+            self._power_resume = None
+
         self._overlay.dismiss()
         self._ocr_request_id += 1
-        self._ocr_runner.shutdown(timeout_ms=15000)
+        self._ocr_runner.finished.disconnect(self._on_ocr_finished)
+        self._ocr_runner.error.disconnect(self._on_ocr_error)
+
         self._popup.shutdown()
+        self._ocr_runner.shutdown(timeout_ms=15000)
+        self._tray.hide()
 
     def _on_hotkey_triggered(self) -> None:
         clipboard = QGuiApplication.clipboard()

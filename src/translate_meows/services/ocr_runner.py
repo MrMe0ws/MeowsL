@@ -32,7 +32,8 @@ class OcrRunner(QObject):
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._thread = QThread(parent)
+        self._shutdown_done = False
+        self._thread = QThread(self)
         self._worker = OcrWorker()
         self._worker.moveToThread(self._thread)
 
@@ -48,7 +49,14 @@ class OcrRunner(QObject):
         self._worker.ocr_requested.emit(image, request_id)
 
     def shutdown(self, timeout_ms: int = 5000) -> None:
+        if self._shutdown_done:
+            return
+        self._shutdown_done = True
+
         if not self._thread.isRunning():
             return
+
         self._thread.quit()
-        self._thread.wait(timeout_ms)
+        if not self._thread.wait(timeout_ms):
+            self._thread.terminate()
+            self._thread.wait(3000)

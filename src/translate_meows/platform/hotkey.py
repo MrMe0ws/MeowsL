@@ -43,6 +43,16 @@ def _register_scan_code_hotkey(
     return remove
 
 
+def _reset_keyboard_state() -> None:
+    """Сбрасывает залипшее состояние keyboard после сна Windows."""
+    listener = keyboard._listener
+    with keyboard._pressed_events_lock:
+        keyboard._pressed_events.clear()
+    keyboard._logically_pressed_keys.clear()
+    listener.active_modifiers.clear()
+    listener.modifier_states.clear()
+
+
 class HotkeyListener:
     """
     Слушает глобальные хоткеи:
@@ -88,6 +98,14 @@ class HotkeyListener:
         if self._screen_capture_remove is not None:
             self._screen_capture_remove()
             self._screen_capture_remove = None
+
+    def restart(self) -> None:
+        """Переподключает хоткеи и сбрасывает состояние keyboard."""
+        self.stop()
+        _reset_keyboard_state()
+        with self._lock:
+            self._last_ctrl_c = 0.0
+        self.start()
 
     def _on_ctrl_c(self) -> None:
         now = time.monotonic()

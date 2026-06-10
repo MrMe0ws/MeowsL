@@ -2,7 +2,7 @@
 
 APP_NAME = "Translate Meows"
 APP_DISPLAY_NAME = "MeowsL"
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 
 # Перевод
 DEBOUNCE_MS = 600
@@ -11,6 +11,8 @@ MAX_DETECT_LENGTH = 500
 # Глобальные хоткеи
 DOUBLE_CTRL_C_INTERVAL_MS = 500
 FALLBACK_HOTKEY = "ctrl+alt+t"
+HOTKEY_RESUME_DELAY_MS = 500
+HOTKEY_RESUME_DEBOUNCE_S = 2.0
 # Физическая клавиша слева от «1» (Ё / `) — scan code 41 на стандартной раскладке
 SCREEN_CAPTURE_SCAN_CODE = 41
 
