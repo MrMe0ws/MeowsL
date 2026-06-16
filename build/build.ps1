@@ -61,4 +61,4 @@ Write-Host ""
 Write-Host "Installer (optional):" -ForegroundColor Yellow
 Write-Host "  1. Install Inno Setup: https://jrsoftware.org/isinfo.php"
 Write-Host "  2. Open build\installer.iss in Inno Setup Compiler"
-Write-Host "  3. Build -> Compile -> dist\installer\MeowsL-Setup-0.2.0.exe"
+Write-Host "  3. Build -> Compile -> dist\installer\MeowsL-Setup.exe"
