@@ -39,7 +39,7 @@ py -3 main.py
 
 ### Готовый .exe
 
-Скачай `MeowsL.exe` из [Releases](https://github.com/MrMe0ws/MeowsL/releases) и запусти. Python не нужен.
+Скачай `MeowsL_<версия>.exe` (например `MeowsL_0.3.2.exe`) из [Releases](https://github.com/MrMe0ws/MeowsL/releases) и запусти. Python не нужен.
 
 ## Как пользоваться
 

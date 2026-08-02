@@ -55,8 +55,21 @@ Invoke-Python @("-m", "pip", "install", "-r", "requirements.txt", "pyinstaller",
 Write-Host "==> Building exe..." -ForegroundColor Cyan
 Invoke-Python @("-m", "PyInstaller", "build\meowsl.spec", "--noconfirm", "--clean")
 
+if (-not (Test-Path "dist\MeowsL.exe")) {
+    throw "dist\MeowsL.exe not found after PyInstaller"
+}
+
+$versionMatch = Select-String -Path "src\translate_meows\config.py" -Pattern 'APP_VERSION\s*=\s*"([^"]+)"' | Select-Object -First 1
+if (-not $versionMatch) {
+    throw "APP_VERSION not found in src\translate_meows\config.py"
+}
+$version = $versionMatch.Matches[0].Groups[1].Value
+$versionedExe = "dist\MeowsL_$version.exe"
+Copy-Item "dist\MeowsL.exe" $versionedExe -Force
+
 Write-Host ""
-Write-Host "Done: dist\MeowsL.exe" -ForegroundColor Green
+Write-Host "Done: $versionedExe" -ForegroundColor Green
+Write-Host "Also: dist\MeowsL.exe (for installer)" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "Installer (optional):" -ForegroundColor Yellow
 Write-Host "  1. Install Inno Setup: https://jrsoftware.org/isinfo.php"

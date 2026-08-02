@@ -27,15 +27,14 @@ jobs:
         run: |
           python --version
           .\build\build.ps1
-          if (-not (Test-Path dist\MeowsL.exe)) {
-            throw "dist\MeowsL.exe not found after build"
-          }
-
-      - name: Prepare release assets
-        shell: pwsh
-        run: |
           $version = "${{ github.ref_name }}"
-          Copy-Item dist\MeowsL.exe "dist\MeowsL-$version.exe"
+          $asset = "dist\MeowsL_$version.exe"
+          if (-not (Test-Path $asset)) {
+            if (-not (Test-Path "dist\MeowsL.exe")) {
+              throw "dist\MeowsL.exe not found after build"
+            }
+            Copy-Item "dist\MeowsL.exe" $asset -Force
+          }
 
       - name: Extract GitHub release notes
         shell: pwsh
@@ -67,6 +66,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: MeowsL ${{ github.ref_name }}
           body_path: release_body.md
-          files: dist/MeowsL-${{ github.ref_name }}.exe
+          files: dist/MeowsL_${{ github.ref_name }}.exe
           draft: false
           prerelease: false

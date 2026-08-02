@@ -1,16 +1,27 @@
-"""Глобальные хоткеи через библиотеку keyboard."""
+"""Глобальные хоткеи через библиотеку keyboard + Win32 GetAsyncKeyState."""
 
+from __future__ import annotations
+
+import ctypes
 import time
 from threading import Lock
 from typing import Callable, Optional
 
 import keyboard
+from keyboard import KEY_DOWN, KEY_UP
 
 from translate_meows.config import (
     DOUBLE_CTRL_C_INTERVAL_MS,
-    FALLBACK_HOTKEY,
     SCREEN_CAPTURE_SCAN_CODE,
 )
+
+_VK_CONTROL = 0x11
+_VK_MENU = 0x12  # Alt
+
+
+def _key_down(vk: int) -> bool:
+    """Текущее состояние клавиши из ОС — не зависит от _pressed_events keyboard."""
+    return bool(ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000)
 
 
 def _register_scan_code_hotkey(
@@ -23,7 +34,7 @@ def _register_scan_code_hotkey(
     Привязка к физической клавише по scan code.
     Нужна для клавиши Ё, т.к. имя символа зависит от раскладки.
     """
-    from keyboard import KEY_DOWN, _listener as listener
+    from keyboard import _listener as listener
 
     def hook(event) -> bool:
         if event.event_type == KEY_DOWN:
@@ -39,6 +50,42 @@ def _register_scan_code_hotkey(
     def remove() -> None:
         if hook in store[scan_code]:
             store[scan_code].remove(hook)
+
+    return remove
+
+
+def _register_key_hook(
+    scan_codes: tuple[int, ...],
+    on_down: Callable[[], None],
+    *,
+    suppress: bool = False,
+) -> Callable[[], None]:
+    """Хук на KEY_DOWN по scan codes без auto-repeat (пока клавиша зажата)."""
+    from keyboard import _listener as listener
+
+    held: set[int] = set()
+
+    def hook(event) -> bool:
+        code = event.scan_code
+        if event.event_type == KEY_DOWN:
+            if code not in held:
+                held.add(code)
+                on_down()
+        elif event.event_type == KEY_UP:
+            held.discard(code)
+        if suppress:
+            return False
+        return True
+
+    listener.start_if_necessary()
+    store = listener.blocking_keys if suppress else listener.nonblocking_keys
+    for scan_code in scan_codes:
+        store[scan_code].append(hook)
+
+    def remove() -> None:
+        for scan_code in scan_codes:
+            if hook in store[scan_code]:
+                store[scan_code].remove(hook)
 
     return remove
 
@@ -59,6 +106,10 @@ class HotkeyListener:
     - Ctrl+C+C (двойное нажатие за 500 мс) — перевод из буфера
     - Ctrl+Alt+T — запасной
     - Ё (физ. клавиша scan 41) — выделение области экрана
+
+    Ctrl-комбинации проверяют модификаторы через GetAsyncKeyState, а не через
+    keyboard.add_hotkey — иначе после сна _pressed_events «залипает» и
+    комбинации перестают матчиться, тогда как одиночные scan-code хуки живут.
     """
 
     def __init__(
@@ -71,16 +122,19 @@ class HotkeyListener:
         self._last_ctrl_c = 0.0
         self._interval = DOUBLE_CTRL_C_INTERVAL_MS / 1000.0
         self._lock = Lock()
-        self._ctrl_c_handle = None
-        self._fallback_handle = None
+        self._ctrl_c_remove: Optional[Callable[[], None]] = None
+        self._fallback_remove: Optional[Callable[[], None]] = None
         self._screen_capture_remove: Optional[Callable[[], None]] = None
 
     def start(self) -> None:
-        self._ctrl_c_handle = keyboard.add_hotkey(
-            "ctrl+c", self._on_ctrl_c, suppress=False, trigger_on_release=False
+        c_codes = keyboard.key_to_scan_codes("c")
+        t_codes = keyboard.key_to_scan_codes("t")
+
+        self._ctrl_c_remove = _register_key_hook(
+            c_codes, self._on_c_down, suppress=False
         )
-        self._fallback_handle = keyboard.add_hotkey(
-            FALLBACK_HOTKEY, self._on_trigger, suppress=False
+        self._fallback_remove = _register_key_hook(
+            t_codes, self._on_t_down, suppress=False
         )
         self._screen_capture_remove = _register_scan_code_hotkey(
             SCREEN_CAPTURE_SCAN_CODE,
@@ -89,12 +143,12 @@ class HotkeyListener:
         )
 
     def stop(self) -> None:
-        if self._ctrl_c_handle is not None:
-            keyboard.remove_hotkey(self._ctrl_c_handle)
-            self._ctrl_c_handle = None
-        if self._fallback_handle is not None:
-            keyboard.remove_hotkey(self._fallback_handle)
-            self._fallback_handle = None
+        if self._ctrl_c_remove is not None:
+            self._ctrl_c_remove()
+            self._ctrl_c_remove = None
+        if self._fallback_remove is not None:
+            self._fallback_remove()
+            self._fallback_remove = None
         if self._screen_capture_remove is not None:
             self._screen_capture_remove()
             self._screen_capture_remove = None
@@ -107,7 +161,9 @@ class HotkeyListener:
             self._last_ctrl_c = 0.0
         self.start()
 
-    def _on_ctrl_c(self) -> None:
+    def _on_c_down(self) -> None:
+        if not _key_down(_VK_CONTROL) or _key_down(_VK_MENU):
+            return
         now = time.monotonic()
         with self._lock:
             if self._last_ctrl_c and (now - self._last_ctrl_c) <= self._interval:
@@ -115,3 +171,7 @@ class HotkeyListener:
                 self._on_trigger()
             else:
                 self._last_ctrl_c = now
+
+    def _on_t_down(self) -> None:
+        if _key_down(_VK_CONTROL) and _key_down(_VK_MENU):
+            self._on_trigger()

@@ -2,7 +2,7 @@
 
 APP_NAME = "Translate Meows"
 APP_DISPLAY_NAME = "MeowsL"
-APP_VERSION = "0.3.1"
+APP_VERSION = "0.3.2"
 
 # Перевод
 DEBOUNCE_MS = 600

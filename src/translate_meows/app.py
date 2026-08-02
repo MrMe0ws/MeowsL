@@ -89,7 +89,7 @@ class TranslatorApp:
 
         self._hotkey.stop()
         if self._power_resume is not None:
-            self._app.removeNativeEventFilter(self._power_resume)
+            self._power_resume.cleanup()
             self._power_resume = None
 
         self._overlay.dismiss()
