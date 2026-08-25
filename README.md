@@ -39,7 +39,7 @@ py -3 main.py
 
 ### Готовый .exe
 
-Скачай `MeowsL_<версия>.exe` (например `MeowsL_0.3.2.exe`) из [Releases](https://github.com/MrMe0ws/MeowsL/releases) и запусти. Python не нужен.
+Скачай `MeowsL_<версия>.exe` (например `MeowsL_0.4.0.exe`) из [Releases](https://github.com/MrMe0ws/MeowsL/releases) и запусти. Python не нужен.
 
 ## Как пользоваться
 
@@ -62,7 +62,7 @@ py -3 main.py
 
 - Python 3.10+
 - PyQt6 — интерфейс
-- `deep_translator` — Google Translate API
+- `deep_translator` / `requests` — Google Translate (с запасным MyMemory)
 - `keyboard` — глобальные хоткеи Windows
 - `winocr` + `Pillow` — захват и распознавание текста с экрана (Windows OCR)
 - PyInstaller — сборка в exe

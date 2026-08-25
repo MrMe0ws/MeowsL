@@ -1,11 +1,24 @@
-"""Логика перевода через deep_translator."""
+"""Логика перевода через Google Translate (с запасным MyMemory)."""
+
+from __future__ import annotations
 
 import re
 from typing import Optional
 
+import requests
 from PyQt6.QtCore import QObject, pyqtSignal
+from bs4 import BeautifulSoup
+from deep_translator import MyMemoryTranslator
+from deep_translator.exceptions import TranslationNotFound
 
-from deep_translator import GoogleTranslator
+from translate_meows.config import (
+    GOOGLE_TRANSLATE_GTX_URL,
+    GOOGLE_TRANSLATE_HEADERS,
+    GOOGLE_TRANSLATE_MOBILE_URL,
+    MAX_TRANSLATE_CHARS,
+    MYMEMORY_LANG,
+    TRANSLATE_TIMEOUT_S,
+)
 
 CYRILLIC_RE = re.compile(r"[\u0400-\u04FF]")
 LATIN_RE = re.compile(r"[a-zA-Z]")
@@ -44,6 +57,10 @@ def resolve_direction(
 def friendly_error(exc: Exception) -> str:
     """Преобразует исключение в понятное сообщение для пользователя."""
     message = str(exc).lower()
+    if isinstance(exc, TranslationNotFound) or "no translation was found" in message:
+        return "Сервис перевода не ответил. Попробуйте ещё раз через несколько секунд."
+    if "too many requests" in message or "429" in message:
+        return "Слишком много запросов к переводчику. Подождите немного и повторите."
     if any(
         token in message
         for token in (
@@ -58,7 +75,85 @@ def friendly_error(exc: Exception) -> str:
         )
     ):
         return "Нет подключения к интернету. Проверьте сеть и попробуйте снова."
-    return f"Ошибка перевода: {exc}"
+    return "Не удалось перевести текст. Попробуйте ещё раз."
+
+
+def _looks_like_error_page(text: str) -> bool:
+    lowered = text.lower()
+    return "error 500" in lowered or "that's an error" in lowered or "thats an error" in lowered
+
+
+def _translate_google_mobile(text: str, source: str, target: str) -> str:
+    response = requests.get(
+        GOOGLE_TRANSLATE_MOBILE_URL,
+        params={"sl": source, "tl": target, "q": text},
+        headers=GOOGLE_TRANSLATE_HEADERS,
+        timeout=TRANSLATE_TIMEOUT_S,
+    )
+    if response.status_code == 429:
+        raise TranslationNotFound("too many requests")
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    element = soup.find("div", class_="result-container")
+    if element is None:
+        raise TranslationNotFound(text)
+
+    translated = element.get_text(strip=True)
+    if not translated or _looks_like_error_page(translated):
+        raise TranslationNotFound(text)
+    return translated
+
+
+def _translate_google_gtx(text: str, source: str, target: str) -> str:
+    response = requests.get(
+        GOOGLE_TRANSLATE_GTX_URL,
+        params={"client": "gtx", "sl": source, "tl": target, "dt": "t", "q": text},
+        headers=GOOGLE_TRANSLATE_HEADERS,
+        timeout=TRANSLATE_TIMEOUT_S,
+    )
+    if response.status_code == 429:
+        raise TranslationNotFound("too many requests")
+    response.raise_for_status()
+
+    payload = response.json()
+    chunks = payload[0] if payload else None
+    if not chunks:
+        raise TranslationNotFound(text)
+
+    translated = "".join(part[0] for part in chunks if part and part[0])
+    if not translated or _looks_like_error_page(translated):
+        raise TranslationNotFound(text)
+    return translated
+
+
+def _translate_mymemory(text: str, source: str, target: str) -> str:
+    translated = MyMemoryTranslator(
+        source=MYMEMORY_LANG.get(source, source),
+        target=MYMEMORY_LANG.get(target, target),
+    ).translate(text)
+    if not translated or _looks_like_error_page(translated):
+        raise TranslationNotFound(text)
+    return translated
+
+
+def translate_text(text: str, source: str, target: str) -> str:
+    """Переводит текст; при сбое Google пробует запасной движок."""
+    if len(text) > MAX_TRANSLATE_CHARS:
+        raise ValueError("Текст слишком длинный для перевода.")
+
+    last_error: Exception | None = None
+    for translator in (
+        _translate_google_mobile,
+        _translate_google_gtx,
+        _translate_mymemory,
+    ):
+        try:
+            return translator(text, source, target)
+        except Exception as exc:
+            last_error = exc
+
+    raise last_error or TranslationNotFound(text)
 
 
 class TranslateWorker(QObject):
@@ -83,9 +178,7 @@ class TranslateWorker(QObject):
 
         try:
             resolved_source, resolved_target = resolve_direction(text, source, target)
-            translated = GoogleTranslator(
-                source=resolved_source, target=resolved_target
-            ).translate(text)
+            translated = translate_text(text, resolved_source, resolved_target)
             self.finished.emit(translated or "", request_id)
         except Exception as exc:
             self.error.emit(friendly_error(exc), request_id)

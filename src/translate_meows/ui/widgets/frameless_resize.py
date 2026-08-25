@@ -4,9 +4,9 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QPushButton, QWidget
 
-from translate_meows.config import RESIZE_MARGIN
+from translate_meows.config import RESIZE_CORNER, RESIZE_MARGIN, WINDOW_MARGIN
 from translate_meows.platform.win_native_resize import (
     handle_win_native_resize,
     is_win_native_resize_available,
@@ -41,31 +41,53 @@ class FramelessResizeMixin:
     def uses_native_resize(self) -> bool:
         return self._use_native_resize
 
+    def _widget_blocks_resize(self, watched: Optional[QWidget]) -> bool:
+        """Кнопки закрытия/свопа/копирования не должны начинать ресайз."""
+        widget: Optional[QWidget] = watched
+        while widget is not None and widget is not self:
+            if isinstance(widget, QPushButton):
+                return True
+            widget = widget.parentWidget()
+        return False
+
     def _hit_resize_edge(self, pos) -> Optional[str]:
-        margin = RESIZE_MARGIN
+        """Hit-test по видимой плашке: углы больше краёв, как у окон Windows."""
         x, y = pos.x(), pos.y()
         w, h = self.width(), self.height()
+        if x < 0 or y < 0 or x >= w or y >= h:
+            return None
 
-        left = x >= 0 and x < margin
-        right = x >= w - margin and x < w
-        top = y >= 0 and y < margin
-        bottom = y >= h - margin and y < h
+        inset = WINDOW_MARGIN
+        dist_left = x - inset
+        dist_right = (w - inset) - x
+        dist_top = y - inset
+        dist_bottom = (h - inset) - y
 
-        if top and left:
+        near_left = dist_left < RESIZE_MARGIN
+        near_right = dist_right < RESIZE_MARGIN
+        near_top = dist_top < RESIZE_MARGIN
+        near_bottom = dist_bottom < RESIZE_MARGIN
+
+        in_left_corner = dist_left < RESIZE_CORNER
+        in_right_corner = dist_right < RESIZE_CORNER
+        in_top_corner = dist_top < RESIZE_CORNER
+        in_bottom_corner = dist_bottom < RESIZE_CORNER
+
+        if in_top_corner and in_left_corner:
             return "top-left"
-        if top and right:
+        if in_top_corner and in_right_corner:
             return "top-right"
-        if bottom and left:
+        if in_bottom_corner and in_left_corner:
             return "bottom-left"
-        if bottom and right:
+        if in_bottom_corner and in_right_corner:
             return "bottom-right"
-        if left:
+        if near_left:
             return "left"
-        if right:
+        if near_right:
             return "right"
-        if top:
+        if near_top:
             return "top"
-        if bottom:
+        if near_bottom:
             return "bottom"
         return None
 
@@ -86,8 +108,12 @@ class FramelessResizeMixin:
             else:
                 watched.unsetCursor()
 
-    def _frameless_press_at(self, local_pos, global_pos, button) -> bool:
+    def _frameless_press_at(
+        self, local_pos, global_pos, button, watched: Optional[QWidget] = None
+    ) -> bool:
         if self._use_native_resize or button != Qt.MouseButton.LeftButton:
+            return False
+        if self._widget_blocks_resize(watched):
             return False
 
         edge = self._hit_resize_edge(local_pos)
@@ -111,6 +137,10 @@ class FramelessResizeMixin:
         if self._resize_edge and self._resize_origin and self._resize_start_geom:
             self._apply_resize_delta(global_pos - self._resize_origin)
             return True
+
+        if self._widget_blocks_resize(watched):
+            self._update_resize_cursor(None, watched)
+            return False
 
         edge = self._hit_resize_edge(local_pos)
         self._update_resize_cursor(edge, watched)
@@ -146,6 +176,7 @@ class FramelessResizeMixin:
             event.position().toPoint(),
             event.globalPosition().toPoint(),
             event.button(),
+            self,
         ):
             event.accept()
             return True
@@ -175,19 +206,20 @@ class FramelessResizeMixin:
         x, y = geom.x(), geom.y()
         w, h = geom.width(), geom.height()
         dx, dy = delta.x(), delta.y()
+        parts = set(edge.split("-"))
 
-        if "left" in edge:
+        if "left" in parts:
             new_w = max(min_w, w - dx)
             x = geom.x() + (w - new_w)
             w = new_w
-        elif "right" in edge:
+        elif "right" in parts:
             w = max(min_w, w + dx)
 
-        if "top" in edge:
+        if "top" in parts:
             new_h = max(min_h, h - dy)
             y = geom.y() + (h - new_h)
             h = new_h
-        elif "bottom" in edge:
+        elif "bottom" in parts:
             h = max(min_h, h + dy)
 
         self.setGeometry(x, y, w, h)

@@ -43,6 +43,11 @@ class TitleBar(QWidget):
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
+            local = self._window.mapFromGlobal(event.globalPosition().toPoint())
+            hit = getattr(self._window, "_hit_resize_edge", None)
+            if callable(hit) and hit(local):
+                event.ignore()
+                return
             self._drag_origin = (
                 event.globalPosition().toPoint() - self._window.frameGeometry().topLeft()
             )

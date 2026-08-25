@@ -23,6 +23,8 @@ a = Analysis(
         "PyQt6.QtGui",
         "PyQt6.QtWidgets",
         "deep_translator",
+        "requests",
+        "bs4",
         "keyboard",
         "winocr",
         "PIL",

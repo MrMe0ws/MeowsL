@@ -240,7 +240,9 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
         watched_widget = watched if isinstance(watched, QWidget) else None
 
         if event_type == QEvent.Type.MouseButtonPress:
-            if self._frameless_press_at(local_pos, global_pos, event.button()):
+            if self._frameless_press_at(
+                local_pos, global_pos, event.button(), watched_widget
+            ):
                 return True
         elif event_type == QEvent.Type.MouseMove:
             if self._frameless_move_at(local_pos, global_pos, watched_widget):

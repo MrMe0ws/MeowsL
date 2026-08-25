@@ -4,13 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "translate-meows"
-version = "0.3.2"
+version = "0.4.0"
 description = "Глобальный переводчик по хоткею для Windows"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "PyQt6>=6.6.0",
     "deep-translator>=1.11.4",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
     "keyboard>=0.13.5",
     "winocr>=0.0.15",
     "Pillow>=10.0.0",

@@ -2,7 +2,7 @@
 ; Скачать Inno Setup: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "MeowsL"
-#define MyAppVersion "0.3.2"
+#define MyAppVersion "0.4.0"
 #define MyAppPublisher "MeowsLate"
 #define MyAppExeName "MeowsL.exe"
 
