@@ -4,7 +4,10 @@
   <img src="photo/logo-icon.png" alt="Логотип MeowsL" width="128">
 </p>
 <p align="center">
-  <img src="photo/modal.png" alt="Пример работы" width="420" style="max-width: 100%; height: auto;">
+  <img src="photo/main-window.png" alt="Главное окно MeowsL" width="720" style="max-width: 100%; height: auto;">
+</p>
+<p align="center">
+  <img src="photo/modal.png" alt="Окно перевода" width="420" style="max-width: 100%; height: auto;">
 </p>
 
 **MeowsL** — фоновый переводчик для Windows из системного трея. **Ctrl+C+C** — перевод из буфера; **Ё** — выдели текст на экране рамкой. Результат в компактном popup-окне.
