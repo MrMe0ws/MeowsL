@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from translate_meows import settings as user_settings
 from translate_meows.config import (
-    DEBOUNCE_MS,
     LANG_DISPLAY,
     POPUP_HEIGHT,
     POPUP_MIN_HEIGHT,
@@ -29,6 +29,7 @@ from translate_meows.platform.window_state import (
     place_popup_near_rect,
     save_popup_geometry,
 )
+from translate_meows.services import history
 from translate_meows.services.translation_runner import TranslationRunner
 from translate_meows.services.translator import resolve_direction
 from translate_meows.ui.fonts import app_font
@@ -73,6 +74,8 @@ class PopupDismissFilter(QObject):
             return True
 
         if event.type() == QEvent.Type.MouseButtonPress:
+            if not user_settings.close_popup_on_blur():
+                return False
             global_pos = event.globalPosition().toPoint()
             if not self._popup.frameGeometry().contains(global_pos):
                 self._popup.hide()
@@ -196,12 +199,20 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
         self._geometry_save.timeout.connect(self._persist_geometry)
 
     def _persist_geometry(self) -> None:
+        if not user_settings.remember_popup_geometry():
+            return
         save_popup_geometry(self)
 
     def _schedule_geometry_save(self) -> None:
         self._geometry_save.start(SETTINGS_GEOMETRY_SAVE_MS)
 
     def _restore_or_default_geometry(self) -> None:
+        if not user_settings.remember_popup_geometry():
+            self._has_saved_geometry = False
+            self.resize(POPUP_WIDTH, POPUP_HEIGHT)
+            center_popup_on_screen(self)
+            return
+
         if self._geometry_restored:
             ensure_popup_on_screen(self)
             return
@@ -256,7 +267,26 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
     def hideEvent(self, event) -> None:
         self._frameless_release_resize()
         self._persist_geometry()
+        self._record_history()
         super().hideEvent(event)
+
+    def _record_history(self) -> None:
+        """Сохраняем итоговую пару один раз при закрытии, а не на каждый ввод."""
+        if not user_settings.history_enabled():
+            return
+        try:
+            source = self._input.toPlainText().strip()
+            target = self._output.toPlainText().strip()
+        except RuntimeError:
+            return
+        if not source or not target or source == target:
+            return
+        history.add(
+            source,
+            target,
+            self._source_lang or "",
+            self._target_lang or "",
+        )
 
     def moveEvent(self, event) -> None:
         super().moveEvent(event)
@@ -281,6 +311,8 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
 
     def _on_focus_changed(self, _old: QWidget, new: Optional[QWidget]) -> None:
         if not _is_widget_alive(self) or not self.isVisible():
+            return
+        if not user_settings.close_popup_on_blur():
             return
         if new is None:
             self.hide()
@@ -402,7 +434,7 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
             self._source_lang = None
             self._target_lang = None
 
-        self._debounce.start(DEBOUNCE_MS)
+        self._debounce.start(user_settings.debounce_ms())
 
     def _swap_texts(self) -> None:
         try:
@@ -459,7 +491,10 @@ class TranslationPopup(FramelessResizeMixin, QWidget):
             if self._direction_locked and self._source_lang and self._target_lang:
                 source, target = self._source_lang, self._target_lang
             else:
-                source, target = resolve_direction(text)
+                forced = user_settings.forced_direction()
+                source, target = (
+                    forced if forced is not None else resolve_direction(text)
+                )
                 self._source_lang, self._target_lang = source, target
 
             self._update_lang_labels()

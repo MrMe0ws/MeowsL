@@ -7,7 +7,11 @@ from PyQt6.QtGui import QImage
 
 import winocr
 
-OCR_LANG = "en"
+from translate_meows import settings as user_settings
+from translate_meows.config import OCR_LANG_AUTO
+
+# Порядок попыток в режиме «Авто»: берём более полный результат.
+AUTO_LANGS = ("en", "ru")
 
 
 def qimage_to_pil(image: QImage) -> Image.Image:
@@ -60,11 +64,35 @@ def friendly_ocr_error(exc: Exception) -> str:
     return f"Ошибка распознавания: {exc}"
 
 
-def recognize_image(image: QImage) -> str:
-    """Распознаёт текст на изображении (только EN OCR)."""
-    pil_image = qimage_to_pil(image)
-    try:
-        result = winocr.recognize_pil_sync(pil_image, OCR_LANG)
-    except Exception as exc:
-        raise RuntimeError(friendly_ocr_error(exc)) from exc
+def _recognize_with(pil_image: Image.Image, lang: str) -> str:
+    result = winocr.recognize_pil_sync(pil_image, lang)
     return extract_text(result)
+
+
+def recognize_image(image: QImage) -> str:
+    """Распознаёт текст на изображении языком из настроек."""
+    pil_image = qimage_to_pil(image)
+    language = user_settings.ocr_language()
+
+    if language != OCR_LANG_AUTO:
+        try:
+            return _recognize_with(pil_image, language)
+        except Exception as exc:
+            raise RuntimeError(friendly_ocr_error(exc)) from exc
+
+    best = ""
+    last_error: Exception | None = None
+    for lang in AUTO_LANGS:
+        try:
+            text = _recognize_with(pil_image, lang)
+        except Exception as exc:
+            last_error = exc
+            continue
+        if len(text) > len(best):
+            best = text
+
+    if best:
+        return best
+    if last_error is not None:
+        raise RuntimeError(friendly_ocr_error(last_error)) from last_error
+    return ""

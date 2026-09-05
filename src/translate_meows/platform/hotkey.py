@@ -10,10 +10,8 @@ from typing import Callable, Optional
 import keyboard
 from keyboard import KEY_DOWN, KEY_UP
 
-from translate_meows.config import (
-    DOUBLE_CTRL_C_INTERVAL_MS,
-    SCREEN_CAPTURE_SCAN_CODE,
-)
+from translate_meows import settings as user_settings
+from translate_meows.config import DOUBLE_CTRL_C_INTERVAL_MS
 
 _VK_CONTROL = 0x11
 _VK_MENU = 0x12  # Alt
@@ -137,7 +135,7 @@ class HotkeyListener:
             t_codes, self._on_t_down, suppress=False
         )
         self._screen_capture_remove = _register_scan_code_hotkey(
-            SCREEN_CAPTURE_SCAN_CODE,
+            user_settings.capture_scan_code(),
             self._on_screen_capture,
             suppress=True,
         )
@@ -154,7 +152,7 @@ class HotkeyListener:
             self._screen_capture_remove = None
 
     def restart(self) -> None:
-        """Переподключает хоткеи и сбрасывает состояние keyboard."""
+        """Переподключает хоткеи (в т.ч. после смены клавиши) и чистит состояние."""
         self.stop()
         _reset_keyboard_state()
         with self._lock:

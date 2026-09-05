@@ -8,8 +8,11 @@ from PyQt6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from translate_meows.paths import asset_path
 
 _PHOTO_DIR = asset_path("photo")
-_LOGO_PATH = _PHOTO_DIR / "logo-icon.png"
-_LOGO_FALLBACK_PATH = _PHOTO_DIR / "logo.png"
+_LOGO_CANDIDATES = (
+    _PHOTO_DIR / "logo-icon.ico",
+    _PHOTO_DIR / "logo-icon.png",
+    _PHOTO_DIR / "logo.png",
+)
 _ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
 
 
@@ -36,10 +39,9 @@ def _fallback_icon() -> QIcon:
 
 
 def _logo_path() -> Path | None:
-    if _LOGO_PATH.is_file():
-        return _LOGO_PATH
-    if _LOGO_FALLBACK_PATH.is_file():
-        return _LOGO_FALLBACK_PATH
+    for candidate in _LOGO_CANDIDATES:
+        if candidate.is_file():
+            return candidate
     return None
 
 
@@ -48,6 +50,11 @@ def app_icon() -> QIcon:
     path = _logo_path()
     if path is None:
         return _fallback_icon()
+
+    if path.suffix.lower() == ".ico":
+        icon = QIcon(str(path))
+        if not icon.isNull():
+            return icon
 
     source = QPixmap(str(path))
     if source.isNull():
@@ -64,3 +71,11 @@ def app_icon() -> QIcon:
             )
         )
     return icon
+
+
+def logo_pixmap(size: int) -> QPixmap:
+    """Логотип нужного размера для шапки главного окна."""
+    pixmap = app_icon().pixmap(size, size)
+    if not pixmap.isNull():
+        return pixmap
+    return _fallback_icon().pixmap(size, size)

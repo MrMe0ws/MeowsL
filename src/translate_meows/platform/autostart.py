@@ -12,7 +12,9 @@ from translate_meows.config import (
     APP_DISPLAY_NAME,
     SETTINGS_APP,
     SETTINGS_KEY_AUTOSTART,
+    SETTINGS_KEY_SHOW_ON_START,
     SETTINGS_ORG,
+    TRAY_ARG,
 )
 
 _RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -22,13 +24,20 @@ def _settings() -> QSettings:
     return QSettings(SETTINGS_ORG, SETTINGS_APP)
 
 
+def _startup_suffix() -> str:
+    """При автозапуске окно не показываем, если пользователь не попросил."""
+    if _settings().value(SETTINGS_KEY_SHOW_ON_START, False, type=bool):
+        return ""
+    return f" {TRAY_ARG}"
+
+
 def launch_command() -> str:
     """Команда для записи в Run."""
     if getattr(sys, "frozen", False):
-        return f'"{Path(sys.executable).resolve()}"'
+        return f'"{Path(sys.executable).resolve()}"{_startup_suffix()}'
     script = Path(sys.argv[0]).resolve()
     python = Path(sys.executable).resolve()
-    return f'"{python}" "{script}"'
+    return f'"{python}" "{script}"{_startup_suffix()}'
 
 
 def is_enabled_in_registry() -> bool:

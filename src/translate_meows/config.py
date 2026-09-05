@@ -2,7 +2,7 @@
 
 APP_NAME = "Translate Meows"
 APP_DISPLAY_NAME = "MeowsL"
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.5.0"
 
 # Перевод
 DEBOUNCE_MS = 600
@@ -31,6 +31,7 @@ HOTKEY_RESUME_DELAY_MS = 500
 HOTKEY_RESUME_DEBOUNCE_S = 2.0
 # Физическая клавиша слева от «1» (Ё / `) — scan code 41 на стандартной раскладке
 SCREEN_CAPTURE_SCAN_CODE = 41
+SCREEN_CAPTURE_LABEL = "Ё"
 
 # Захват области экрана
 MIN_SELECTION_SIZE = 10
@@ -61,3 +62,58 @@ LANG_DISPLAY = {
     "en": "ENGLISH",
     "ru": "RUSSIAN",
 }
+
+# Главное окно
+MAIN_WIDTH = 760
+MAIN_HEIGHT = 540
+MAIN_MIN_WIDTH = 660
+MAIN_MIN_HEIGHT = 460
+MAIN_RAIL_WIDTH = 176
+MAIN_FOOTER_HEIGHT = 44
+
+# Аргумент командной строки для тихого автозапуска
+TRAY_ARG = "--tray"
+
+# Настройки (QSettings)
+SETTINGS_KEY_MAIN_GEOMETRY = "main/geometry"
+SETTINGS_KEY_SHOW_ON_START = "startup/show_window"
+SETTINGS_KEY_HISTORY_ENABLED = "history/enabled"
+SETTINGS_KEY_LANG_PAIR = "translate/pair"
+SETTINGS_KEY_DEBOUNCE = "translate/debounce_ms"
+SETTINGS_KEY_AUTO_TRANSLATE = "translate/auto"
+SETTINGS_KEY_OCR_LANG = "ocr/language"
+SETTINGS_KEY_OCR_SOUND = "ocr/sound"
+SETTINGS_KEY_REMEMBER_GEOMETRY = "popup/remember_geometry"
+SETTINGS_KEY_CLOSE_ON_BLUR = "popup/close_on_blur"
+SETTINGS_KEY_CAPTURE_SCAN = "hotkey/capture_scan_code"
+SETTINGS_KEY_CAPTURE_LABEL = "hotkey/capture_label"
+
+# Языковая пара
+LANG_PAIR_AUTO = "auto"
+LANG_PAIR_CHOICES = (
+    (LANG_PAIR_AUTO, "Русский ⇄ English"),
+    ("ru:en", "Русский → English"),
+    ("en:ru", "English → Русский"),
+)
+
+# Задержка перед переводом
+DEBOUNCE_CHOICES = (300, 600, 1000)
+
+# Язык распознавания с экрана
+OCR_LANG_AUTO = "auto"
+OCR_LANG_CHOICES = (
+    ("en", "Английский"),
+    ("ru", "Русский"),
+    (OCR_LANG_AUTO, "Авто (оба языка)"),
+)
+
+# История переводов
+HISTORY_LIMIT = 50
+HISTORY_FILE = "history.json"
+HISTORY_PREVIEW_ROWS = 3
+
+# Проект
+GITHUB_URL = "https://github.com/MrMe0ws/MeowsL"
+GITHUB_RELEASES_URL = "https://github.com/MrMe0ws/MeowsL/releases"
+GITHUB_LATEST_API = "https://api.github.com/repos/MrMe0ws/MeowsL/releases/latest"
+UPDATE_TIMEOUT_S = 8

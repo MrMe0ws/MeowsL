@@ -16,6 +16,7 @@ a = Analysis(
     datas=[
         (str(ROOT / "photo" / "logo.png"), "photo"),
         (str(ROOT / "photo" / "logo-icon.png"), "photo"),
+        (str(ROOT / "photo" / "logo-icon.ico"), "photo"),
         *winocr_datas,
     ],
     hiddenimports=[
